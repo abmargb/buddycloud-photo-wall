@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,70 +7,14 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <!-- Le styles -->
     <link href="css/bootstrap.css" rel="stylesheet">
-    <style type="text/css">
-      body {
-        padding-top: 10px;
-        padding-bottom: 40px;
-      }
-
-      /* Custom container */
-      .container-narrow {
-        margin: 0 auto;
-        max-width: 100%;
-      }
-      .container-narrow > hr {
-        margin: 30px 0;
-      }
-
-      /* Main marketing message and sign up button */
-      .jumbotron {
-        margin: 20px 0;
-        text-align: center;
-      }
-      .jumbotron h1 {
-        font-size: 72px;
-        line-height: 1;
-      }
-      .jumbotron .btn {
-        font-size: 21px;
-        padding: 14px 24px;
-      }
-	  
-	  /* dropzone */
-	  #dropzone-upload {
-        background-color: #CCC;
-		height: 100px;
-      }
-	  
-	  /* masonry */
-	  #container {
-	    text-align: center;
-	  }
-	  
-	  #container img {
-        max-width: 300px;
-		max-height: 300px;
-      }
-	  
-	  .box {
-	    margin: 5px;
-	  }
-	  
-    </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
-
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="js/html5shiv.js"></script>
-    <![endif]-->
+	<link href="css/main.css" rel="stylesheet">	
   </head>
 
   <body>
 
     <div class="container-narrow">
-
       <div class="jumbotron">
         <h1>buddycloud photo wall</h1>
 		<div id="dropzone-upload">
@@ -82,129 +25,89 @@
 		<hr>
       </div>
 
-	  <!--
-	  <div id="container">
-        <img class="box" src="samples/muffin.jpg"/>
-		<img class="box" src="samples/random03.jpg"/>
-		<img class="box" src="samples/random04.jpg"/>
-		<img class="box" src="samples/random07.jpg"/>
-		<img class="box" src="samples/random08.jpg"/>
-		<img class="box" src="samples/random05.jpg"/>
-		<img class="box" src="samples/random06.jpg"/>
-		<img class="box" src="samples/muffin.jpg"/>
-		<img class="box" src="samples/random03.jpg"/>
-		<img class="box" src="samples/random04.jpg"/>
-		<img class="box" src="samples/random07.jpg"/>
-		<img class="box" src="samples/random08.jpg"/>
-		<img class="box" src="samples/random05.jpg"/>
-		<img class="box" src="samples/random06.jpg"/>
-      </div>
-	  -->
+	  <div id="container"/>
 	  
-    </div> <!-- /container -->
-
-    <!-- Le javascript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
+    </div>
+	
     <script src="js/jquery.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/dropzone.js"></script>
+	<script src="js/dropzone-patch.js"></script>
 	<script src="js/jquery.masonry.min.js"></script>
 	
 	<script>
-	
-		Dropzone.prototype.uploadFile = function(file) {
-		  var formData, handleError, input, inputName, inputType, key, progressObj, response, value, xhr, _i, _len, _ref, _ref1, _ref2,
-			_this = this;
 
-		  xhr = new XMLHttpRequest();
-		  xhr.open(this.options.method, this.options.url, true);
-		  response = null;
-		  handleError = function() {
-			return _this.errorProcessing(file, response || _this.options.dictResponseError.replace("{{statusCode}}", xhr.status), xhr);
-		  };
-		  xhr.onload = function(e) {
-			var _ref;
-
-			response = xhr.responseText;
-			if (xhr.getResponseHeader("content-type") && ~xhr.getResponseHeader("content-type").indexOf("application/json")) {
-			  try {
-				response = JSON.parse(response);
-			  } catch (_error) {
-				e = _error;
-				response = "Invalid JSON response from server.";
-			  }
-			}
-			if (!((200 <= (_ref = xhr.status) && _ref < 300))) {
-			  return handleError();
-			} else {
-			  return _this.finished(file, response, e);
-			}
-		  };
-		  xhr.onerror = function() {
-			return handleError();
-		  };
-		  progressObj = (_ref = xhr.upload) != null ? _ref : xhr;
-		  progressObj.onprogress = function(e) {
-			var progress;
-
-			file.upload = {
-			  progress: progress,
-			  total: e.total,
-			  bytesSent: e.loaded
-			};
-			progress = 100 * e.loaded / e.total;
-			return _this.emit("uploadprogress", file, progress, e.loaded);
-		  };
-		  xhr.setRequestHeader("Accept", "application/json");
-		  formData = new FormData();
-		  if (this.options.params) {
-			_ref1 = this.options.params;
-			for (key in _ref1) {
-			  value = _ref1[key];
-			  formData.append(key, value);
-			}
-		  }
-		  if (this.element.tagName === "FORM") {
-			_ref2 = this.element.querySelectorAll("input, textarea, select, button");
-			for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-			  input = _ref2[_i];
-			  inputName = input.getAttribute("name");
-			  inputType = input.getAttribute("type");
-			  if (!inputType || inputType.toLowerCase() !== "checkbox" || input.checked) {
-				formData.append(inputName, input.value);
-			  }
-			}
-		  }
-		  this.emit("sending", file, xhr, formData);
-		  formData.append(this.options.paramName, file);
-		  return xhr.send(formData);
-		};
-
+		var jid = 'abmargb-tester@buddycloud.org';
+		var password = 'abmar123';
+		var apiUrl = 'https://api.buddycloud.org/';
+		var photosUrl = apiUrl + jid + '/content/photos';
+		
+		function authHeader() {
+			return 'Basic ' + btoa(jid + ':' + password);
+		}
+		
+		function displayPhotoStream() {
+			$('#container').empty();
+			$.ajax({
+				type: 'GET',
+				url:  photosUrl,
+				success: function(data) {
+					for(var i in data) {
+						var jsonEntry = JSON.parse(data[i].content);
+						var mediaId = jsonEntry.id;
+						var mediaEntity = jsonEntry.entityId;
+						if (!mediaId || !mediaEntity) {
+							continue;
+						}
+						var imgUrl = apiUrl + mediaEntity + '/media/' + mediaId;
+						var box = $('<img class="box" src="' + imgUrl + '"/>');
+						var imgEl = $('#container').append(box);
+						$('#container').masonry('appended', box);
+					}
+					
+				},
+				contentType: 'application/json',
+				headers: {
+					'Authorization': authHeader(), 
+					'Accept' : 'application/json'
+				}
+			});
+		}
 		
 		$(document).ready(function() {
+		
 			$('#container').masonry({
-			  itemSelector: '.box',
-			  columnWidth: 310
+				itemSelector: '.box',
+				columnWidth: 300
 			});
 			
-			var jid = "abmargb-tester@buddycloud.org";
-			var password = "abmar123";
-			var mediaUrl = "https://api.buddycloud.org/" + jid + "/media"
+			displayPhotoStream();
+			var mediaUrl = apiUrl + jid + '/media'
 			
-			var myDropzone = new Dropzone("#dropzone-upload", {
+			var myDropzone = new Dropzone('#dropzone-upload', {
 				url: mediaUrl,
 				paramName: 'data',
+				
 				sending: function(file, xhr, formData){
-					xhr.setRequestHeader("Authorization", "Basic " + btoa(jid + ':' + password));
+					xhr.setRequestHeader('Authorization', authHeader());
 					console.log(xhr.headers);
 				},
-				success: function() {
-					
+				
+				success: function(file, response) {
+					$.ajax({
+						type: 'POST',
+						url:  photosUrl,
+						data: JSON.stringify({ content: JSON.stringify(response) }),
+						success: function() {
+							displayPhotoStream();
+						},
+						dataType: 'json',
+						contentType: 'application/json',
+						headers: {'Authorization': authHeader()}
+					});
 				}
 			});
 		});
 	</script>
-	
   </body>
 </html>
