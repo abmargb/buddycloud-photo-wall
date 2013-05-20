@@ -37,13 +37,26 @@
 	
 	<script>
 
-		var jid = 'abmargb-tester@buddycloud.org';
-		var password = 'abmar123';
+		var jid = 'photo-demo@buddycloud.org';
+		var password = 'photo-demo';
 		var apiUrl = 'https://api.buddycloud.org/';
 		var photosUrl = apiUrl + jid + '/content/photos';
 		
 		function authHeader() {
 			return 'Basic ' + btoa(jid + ':' + password);
+		}
+		
+		// Create application node if it does not exist
+		function createApplicationNode(callback) {
+			var appNodeUrl = apiUrl + jid + '/photos';
+			$.ajax({
+				type: 'POST',
+				url:  appNodeUrl,
+				error: function(data, e) {console.log(e)},
+				complete: callback,
+				contentType: 'application/json',
+				headers: {'Authorization': authHeader()}
+			});
 		}
 		
 		function displayPhotoStream() {
@@ -64,7 +77,6 @@
 						var imgEl = $('#container').append(box);
 						$('#container').masonry('appended', box);
 					}
-					
 				},
 				contentType: 'application/json',
 				headers: {
@@ -74,40 +86,49 @@
 			});
 		}
 		
-		$(document).ready(function() {
+		function postToPhotoNode(content) {
+			$.ajax({
+				type: 'POST',
+				url:  photosUrl,
+				data: JSON.stringify({content: JSON.stringify(content)}),
+				success: function() {
+					displayPhotoStream();
+				},
+				dataType: 'json',
+				contentType: 'application/json',
+				headers: {'Authorization': authHeader()}
+			});
+		}
+
+		function initializeDropzone() {
+			var mediaUrl = apiUrl + jid + '/media'
+			var myDropzone = new Dropzone('#dropzone-upload', {
+				url: mediaUrl,
+				paramName: 'data',
+				sending: function(file, xhr, formData){
+					xhr.setRequestHeader('Authorization', authHeader());
+				},
+				success: function(file, response) {
+					postToPhotoNode(response);
+				}
+			});
+		}
 		
+		function initializeMasonry() {
 			$('#container').masonry({
 				itemSelector: '.box',
 				columnWidth: 300
 			});
-			
-			displayPhotoStream();
-			var mediaUrl = apiUrl + jid + '/media'
-			
-			var myDropzone = new Dropzone('#dropzone-upload', {
-				url: mediaUrl,
-				paramName: 'data',
-				
-				sending: function(file, xhr, formData){
-					xhr.setRequestHeader('Authorization', authHeader());
-					console.log(xhr.headers);
-				},
-				
-				success: function(file, response) {
-					$.ajax({
-						type: 'POST',
-						url:  photosUrl,
-						data: JSON.stringify({ content: JSON.stringify(response) }),
-						success: function() {
-							displayPhotoStream();
-						},
-						dataType: 'json',
-						contentType: 'application/json',
-						headers: {'Authorization': authHeader()}
-					});
-				}
+		}
+		
+		$(document).ready(function() {
+			initializeMasonry()
+			createApplicationNode(function() {
+				displayPhotoStream();
+				initializeDropzone();			
 			});
 		});
+		
 	</script>
   </body>
 </html>
