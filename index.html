@@ -9,7 +9,7 @@
 
     <link href="css/bootstrap.css" rel="stylesheet">
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
-	<link href="css/main.css" rel="stylesheet">	
+  <link href="css/main.css" rel="stylesheet"> 
   </head>
 
   <body>
@@ -17,118 +17,102 @@
     <div class="container-narrow">
       <div class="jumbotron">
         <h1>buddycloud photo wall</h1>
-		<div id="dropzone-upload">
-			<div id="message">
-				<h2>Drop files here or click to upload</h2>
-			</div>
-		</div>
-		<hr>
+    <div id="dropzone-upload">
+      <div id="message">
+        <h2>Drop files here or click to upload</h2>
+      </div>
+    </div>
+    <hr>
       </div>
 
-	  <div id="container"/>
-	  
+    <div id="container"/>
+    
     </div>
-	
+  
     <script src="js/jquery.js"></script>
+    <script src="js/underscore.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/dropzone.js"></script>
-	<script src="js/dropzone-patch.js"></script>
-	<script src="js/jquery.masonry.min.js"></script>
-	
-	<script>
+  <script src="js/dropzone-patch.js"></script>
+  <script src="js/jquery.masonry.min.js"></script>
+  <script src="js/buddycloud.js"></script>
+  
+  <script>
 
-		var jid = 'photo-demo@buddycloud.org';
-		var password = 'photo-demo';
-		var apiUrl = 'https://api.buddycloud.org/';
-		var photosUrl = apiUrl + jid + '/content/photos';
-		
-		function authHeader() {
-			return 'Basic ' + btoa(jid + ':' + password);
-		}
-		
-		// Create application node if it does not exist
-		function createApplicationNode(callback) {
-			var appNodeUrl = apiUrl + jid + '/photos';
-			$.ajax({
-				type: 'POST',
-				url:  appNodeUrl,
-				error: function(data, e) {console.log(e)},
-				complete: callback,
-				contentType: 'application/json',
-				headers: {'Authorization': authHeader()}
-			});
-		}
-		
-		function displayPhotoStream() {
-			$('#container').empty();
-			$.ajax({
-				type: 'GET',
-				url:  photosUrl,
-				success: function(data) {
-					for(var i in data) {
-						var jsonEntry = JSON.parse(data[i].content);
-						var mediaId = jsonEntry.id;
-						var mediaEntity = jsonEntry.entityId;
-						if (!mediaId || !mediaEntity) {
-							continue;
-						}
-						var imgUrl = apiUrl + mediaEntity + '/media/' + mediaId;
-						var box = $('<img class="box" src="' + imgUrl + '"/>');
-						var imgEl = $('#container').append(box);
-						$('#container').masonry('appended', box);
-					}
-				},
-				contentType: 'application/json',
-				headers: {
-					'Authorization': authHeader(), 
-					'Accept' : 'application/json'
-				}
-			});
-		}
-		
-		function postToPhotoNode(content) {
-			$.ajax({
-				type: 'POST',
-				url:  photosUrl,
-				data: JSON.stringify({content: JSON.stringify(content)}),
-				success: function() {
-					displayPhotoStream();
-				},
-				dataType: 'json',
-				contentType: 'application/json',
-				headers: {'Authorization': authHeader()}
-			});
-		}
+    var jid = 'photo-demo@buddycloud.org';
+    var password = 'photo-demo';
+    var apiUrl = 'https://api.buddycloud.org/';
+    var photosUrl = apiUrl + jid + '/content/photos';
+    
+    function authHeader() {
+      return 'Basic ' + btoa(jid + ':' + password);
+    }
+    
+    // Create application node if it does not exist
+    function createApplicationNode(callback) {
+      return buddycloud.Node.create(jid, 'photos').always(callback);
+    }
+    
+    function retrievePhotosNodeContent() {
+      $('#container').empty();
+      return  buddycloud.Content.get({'channel': jid, 'node': 'photos'});
+    }
 
-		function initializeDropzone() {
-			var mediaUrl = apiUrl + jid + '/media'
-			var myDropzone = new Dropzone('#dropzone-upload', {
-				url: mediaUrl,
-				paramName: 'data',
-				sending: function(file, xhr, formData){
-					xhr.setRequestHeader('Authorization', authHeader());
-				},
-				success: function(file, response) {
-					postToPhotoNode(response);
-				}
-			});
-		}
-		
-		function initializeMasonry() {
-			$('#container').masonry({
-				itemSelector: '.box',
-				columnWidth: 300
-			});
-		}
-		
-		$(document).ready(function() {
-			initializeMasonry()
-			createApplicationNode(function() {
-				displayPhotoStream();
-				initializeDropzone();			
-			});
-		});
-		
-	</script>
+    function loadImages(data) {
+      for(var i in data) {
+        var jsonEntry = JSON.parse(data[i].content);
+        var mediaId = jsonEntry.id;
+        var mediaEntity = jsonEntry.entityId;
+        if (!mediaId || !mediaEntity) {
+          continue;
+        }
+        var imgUrl = apiUrl + mediaEntity + '/media/' + mediaId;
+        var box = $('<img class="box" src="' + imgUrl + '"/>');
+        var imgEl = $('#container').prepend(box).masonry('reload');
+        //$('#container').masonry('appended', box);
+      }
+    }
+    
+    function postToPhotoNode(content) {
+      buddycloud.Content.add(
+        {'channel': jid, 'node': 'photos', 'content': content}).done(retrievePhotosNodeContent);
+    }
+
+    function initializeDropzone() {
+      var mediaUrl = apiUrl + jid + '/media'
+      var myDropzone = new Dropzone('#dropzone-upload', {
+        url: mediaUrl,
+        paramName: 'data',
+        sending: function(file, xhr, formData){
+          xhr.setRequestHeader('Authorization', authHeader());
+        },
+        success: function(file, response) {
+          postToPhotoNode(response);
+        }
+      });
+    }
+    
+    function initializeMasonry() {
+      $('#container').masonry({
+        itemSelector: '.box',
+        columnWidth: 300
+      });
+    }
+
+    function initializeBuddycloud() {
+      return buddycloud.Auth.login(jid, password);
+    }
+    
+    $(document).ready(function() {
+      initializeMasonry();
+      initializeBuddycloud().done(function() {
+        return createApplicationNode();
+      }).done(function() {
+        initializeDropzone();     
+        return retrievePhotosNodeContent();
+      }).done(loadImages);
+    });
+    
+  </script>
   </body>
 </html>
