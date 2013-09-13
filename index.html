@@ -7,9 +7,10 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
+    <link href="css/dropzone.css" rel="stylesheet">
     <link href="css/bootstrap.css" rel="stylesheet">
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
-  <link href="css/main.css" rel="stylesheet"> 
+    <link href="css/main.css" rel="stylesheet"> 
   </head>
 
   <body>
@@ -17,31 +18,31 @@
     <div class="container-narrow">
       <div class="jumbotron">
         <h1>buddycloud photo wall</h1>
-    <div id="dropzone-upload">
-      <div id="message">
-        <h2>Drop files here or click to upload</h2>
+        <div id="dropzone-upload">
+          <div id="message">
+            <h2>Drop files here or click to upload</h2>
+            <div class="dropzone-previews">
+            </div>
+          </div>
+        </div>
+        <hr>
       </div>
-    </div>
-    <hr>
-      </div>
-
-    <div id="container"/>
-    
+      <div id="container"/>
     </div>
 
     <script src="js/jquery.js"></script>
     <script src="js/bootstrap.min.js"></script>
-      <script src="js/dropzone.js"></script>
+    <script src="js/dropzone.js"></script>
     <script src="js/dropzone-patch.js"></script>
     <script src="js/jquery.masonry.min.js"></script>
     <script src="js/buddycloud.js"></script>
     
     <script>
 
-      var jid = 'photo-demo@buddycloud.org';
-      var password = 'photo-demo';
-      var apiUrl = 'https://api.buddycloud.org/';
-      var photosUrl = apiUrl + jid + '/content/photos';
+      var jid = 'jsconf-wall@buddycloud.org';
+      var password = 'photowall';
+      var apiUrl = 'https://demo.buddycloud.org/api/';
+      var photosUrl = apiUrl + jid + '/content/posts';
       
       function authHeader() {
         return 'Basic ' + btoa(jid + ':' + password);
@@ -49,47 +50,46 @@
       
       // Create application node if it does not exist
       function createApplicationNode() {
-        return buddycloud.Node.create(jid, 'photos');
+        return buddycloud.Node.create({'channel': jid, 'node': 'posts'});
       }
       
       function retrievePhotosNodeContent() {
-        return buddycloud.Content.get({'channel': jid, 'node': 'photos'});
+        return buddycloud.Content.get({'channel': jid, 'node': 'posts'});
       }
 
       function loadImages(data) {
-        for(var i in data) {
-          var jsonEntry = JSON.parse(data[i].content);
-          var mediaId = jsonEntry.id;
-          var mediaEntity = jsonEntry.entityId;
-          if (!mediaId || !mediaEntity) {
-            continue;
-          }
-          var imgUrl = apiUrl + mediaEntity + '/media/' + mediaId;
-          var box = $('<img class="box" src="' + imgUrl + '"/>');
-          var imgEl = $('#container').prepend(box).masonry('reload');
-          //$('#container').masonry('appended', box);
-        }
+        data.forEach(function(post) {
+          var mediaArray = post.media;
+          mediaArray.forEach(function(media) {
+            var imgUrl = apiUrl + media.channel + '/media/' + media.id;
+            var box = $('<img class="box" src="' + imgUrl + '"/>');
+            var imgEl = $('#container').prepend(box).masonry('reload');
+          });
+        });
       }
       
-      function postToPhotoNode(content) {
+      function postToPhotoNode(content, media) {
         buddycloud.Content.add(
-          {'channel': jid, 'node': 'photos', 'content': content}).done(retrievePhotosNodeContent);
+          {'channel': jid, 'node': 'posts', 'content': content, 'media': [media]}).done(retrievePhotosNodeContent);
       }
 
       function initializeDropzone() {
         var mediaUrl = apiUrl + jid + '/media'
         var myDropzone = new Dropzone('#dropzone-upload', {
+          previewsContainer: '.dropzone-previews',
           url: mediaUrl,
           paramName: 'data',
+          maxFilesize: 2, // 2MB
           sending: function(file, xhr, formData){
             xhr.setRequestHeader('Authorization', authHeader());
           },
           success: function(file, response) {
-            postToPhotoNode(response);
+            postToPhotoNode('jsconf', {id: response.id, channel: response.entityId});
+            return file.previewElement.classList.add('dz-success');
           }
         });
       }
-      
+
       function initializeMasonry() {
         $('#container').masonry({
           itemSelector: '.box',
@@ -98,7 +98,8 @@
       }
 
       function initializeBuddycloud() {
-        return buddycloud.Auth.login(jid, password);
+        buddycloud.init({'apiUrl': apiUrl, 'domain': 'buddycloud.org'});
+        return buddycloud.Auth.login({'jid': jid, 'password': password});
       }
       
       $(document).ready(function() {
